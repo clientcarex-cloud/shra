@@ -7,8 +7,73 @@ $keys = ['academy_name', 'academy_short', 'academy_address', 'academy_phone', 'a
          'academy_website', 'academy_instagram', 'invoice_prefix', 'tax_pct', 'tax_label',
          'upi_id', 'upi_payee', 'self_billing', 'terms', 'site_url'];
 
+/** Save an uploaded academy logo to assets/img/logo-custom.<ext>. */
+function handle_logo_upload(): void
+{
+    if (empty($_FILES['logo']['name'])) return;
+    $f = $_FILES['logo'];
+
+    if ($f['error'] !== UPLOAD_ERR_OK) {
+        flash('Upload failed (error code ' . (int)$f['error'] . '). The file may be larger than the server allows.', 'error');
+        return;
+    }
+    if ($f['size'] > 3 * 1024 * 1024) {
+        flash('Please use a logo under 3 MB.', 'error');
+        return;
+    }
+
+    $ext  = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
+    $ext  = $ext === 'jpeg' ? 'jpg' : $ext;
+    $dir  = APP_ROOT . '/assets/img';
+
+    if ($ext === 'svg') {
+        $svg = (string) file_get_contents($f['tmp_name']);
+        // Refuse anything scriptable — an SVG is markup, not just a picture.
+        if (!preg_match('/<svg[\s>]/i', $svg)
+            || preg_match('/<script|<foreignObject|javascript:|\son\w+\s*=/i', $svg)) {
+            flash('That SVG contains scripting and was rejected. Export a plain SVG, or upload a PNG.', 'error');
+            return;
+        }
+        $target = $dir . '/logo-custom.svg';
+    } elseif (in_array($ext, ['png', 'jpg', 'webp'], true)) {
+        $info = @getimagesize($f['tmp_name']);
+        $allowed = [IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpg', IMAGETYPE_WEBP => 'webp'];
+        if (!$info || !isset($allowed[$info[2]])) {
+            flash('That file is not a readable PNG, JPG or WEBP image.', 'error');
+            return;
+        }
+        $ext    = $allowed[$info[2]];          // trust the real type, not the file name
+        $target = $dir . '/logo-custom.' . $ext;
+    } else {
+        flash('Use a PNG, JPG, WEBP or SVG file.', 'error');
+        return;
+    }
+
+    if (!is_writable($dir)) {
+        flash('Cannot write to assets/img — set that folder writable (chmod 755) and try again.', 'error');
+        return;
+    }
+    foreach (['svg', 'png', 'webp', 'jpg'] as $old) @unlink($dir . '/logo-custom.' . $old);
+
+    if (!move_uploaded_file($f['tmp_name'], $target)) {
+        flash('Could not save the uploaded file.', 'error');
+        return;
+    }
+    @chmod($target, 0644);
+    flash('Logo updated — it now appears on every screen, invoice and poster.');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
+
+    if (pstr('action') === 'remove_logo') {
+        foreach (['svg', 'png', 'webp', 'jpg'] as $old) @unlink(APP_ROOT . '/assets/img/logo-custom.' . $old);
+        flash('Custom logo removed — the built-in mark is back.', 'info');
+        redirect('settings.php');
+    }
+
+    handle_logo_upload();
+
     foreach ($keys as $k) {
         if ($k === 'self_billing') { setting_set($k, post('self_billing') ? '1' : '0'); continue; }
         if (array_key_exists($k, $_POST)) setting_set($k, trim((string)$_POST[$k]));
@@ -22,7 +87,7 @@ layout_header('Settings');
 ?>
 <div class="desk-bar page-h"><h1>Settings</h1></div>
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
   <?= csrf_field() ?>
   <div class="split wide">
     <div>
@@ -105,12 +170,23 @@ layout_header('Settings');
       </div>
 
       <div class="card">
-        <div class="card-h"><h3>Branding</h3></div>
+        <div class="card-h"><h3>Academy logo</h3></div>
         <div class="card-b center">
-          <div style="width:120px;margin:0 auto;color:var(--brown-800)"><?= logo_svg() ?></div>
-          <p class="small muted mt">Replace <code>assets/img/logo-mark.svg</code> and
-            <code>assets/img/favicon.svg</code> on the server with your own artwork to change this
-            everywhere — sidebar, invoices, posters and the rider portal.</p>
+          <div style="width:130px;margin:0 auto;color:var(--brown-800)"><?= logo_svg() ?></div>
+          <p class="small muted mt">
+            <?= custom_logo() ? 'Your uploaded logo is in use.' : 'Using the built-in mark.' ?>
+            It appears on every screen, invoice, receipt, QR poster and the rider portal.</p>
+          <div class="field mt" style="text-align:left">
+            <label>Upload your logo</label>
+            <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.svg,image/*">
+            <div class="help">PNG, JPG, WEBP or SVG, up to 3 MB. A square image with a
+              transparent background looks best in the sidebar.</div>
+          </div>
+          <?php if (custom_logo()): ?>
+            <button class="btn btn-s btn-ghost" name="action" value="remove_logo" type="submit"
+                    formnovalidate data-confirm="Remove the uploaded logo and go back to the built-in mark?">
+              Remove uploaded logo</button>
+          <?php endif; ?>
         </div>
       </div>
 

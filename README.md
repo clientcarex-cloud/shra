@@ -48,16 +48,20 @@ Go to **Settings** and fill in:
 Then add your **Trainers**, and print the counter QR from
 **Self-Billing QR** (there is a rider-portal poster on the same page).
 
-To use your own logo, replace these two files — everything else (sidebar,
-invoices, posters, portal) follows automatically:
+### Your logo
 
-```
-assets/img/logo-mark.svg
-assets/img/favicon.svg
-```
+**Settings → Academy logo → Upload your logo.** PNG, JPG, WEBP or SVG, up to
+3 MB. It immediately replaces the built-in mark everywhere: sidebar, sign-in,
+invoices, receipts, the QR posters, the rider portal and the browser tab icon.
+A square image with a transparent background looks best in the dark sidebar.
 
-Keep the `viewBox="0 0 200 200"` and use `fill="currentColor"` so the mark
-picks up the surrounding colour.
+The file is stored as `assets/img/logo-custom.<ext>`, so `assets/img/` must be
+writable (`chmod 755 assets/img`). Uploads are validated by their real image
+type, not the file name; SVGs containing scripts or event handlers are refused.
+"Remove uploaded logo" restores the built-in mark.
+
+You can also place the file there over FTP instead of uploading — any of
+`logo-custom.svg`, `.png`, `.webp` or `.jpg` is picked up automatically.
 
 ## 4. Who can see what
 

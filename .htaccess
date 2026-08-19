@@ -38,6 +38,13 @@ DirectoryIndex index.php
   AddOutputFilterByType DEFLATE text/html text/css application/javascript image/svg+xml application/json
 </IfModule>
 
-# Larger POSTs are never needed here
-php_value post_max_size 8M
-php_value upload_max_filesize 8M
+# Upload limits. php_value is only valid under mod_php — guarded so the site
+# does not 500 on PHP-FPM/FastCGI hosts, where these belong in php.ini instead.
+<IfModule mod_php.c>
+  php_value post_max_size 8M
+  php_value upload_max_filesize 8M
+</IfModule>
+<IfModule mod_php7.c>
+  php_value post_max_size 8M
+  php_value upload_max_filesize 8M
+</IfModule>

@@ -36,17 +36,56 @@ function tab_items(): array
     ];
 }
 
+/** Path of an uploaded logo, or null when the built-in mark should be used. */
+function custom_logo(): ?array
+{
+    static $found = false, $cache = null;
+    if ($found) return $cache;
+    $found = true;
+    foreach (['svg', 'png', 'webp', 'jpg'] as $ext) {
+        $f = APP_ROOT . '/assets/img/logo-custom.' . $ext;
+        if (is_file($f)) { $cache = ['file' => $f, 'ext' => $ext, 'rel' => 'assets/img/logo-custom.' . $ext]; break; }
+    }
+    return $cache;
+}
+
+/**
+ * The academy mark, ready to drop into any sized container.
+ * Uses the uploaded logo when there is one, otherwise the built-in SVG.
+ */
 function logo_svg(string $class = ''): string
 {
+    $cls = trim('shra-logo ' . $class);
+    $custom = custom_logo();
+
+    if ($custom) {
+        if ($custom['ext'] === 'svg') {
+            $svg = file_get_contents($custom['file']);
+            $svg = preg_replace('/\s(?:width|height)="[^"]*"/', '', $svg, 2);
+            return str_replace('<svg ', '<svg class="' . e($cls) . '" ', $svg);
+        }
+        // base_url() resolves correctly from /portal/ and from printed pages too.
+        return '<img class="' . e($cls) . '" src="'
+             . e(base_url($custom['rel']) . '?v=' . filemtime($custom['file']))
+             . '" alt="' . e(setting('academy_name', APP_NAME)) . '">';
+    }
+
     static $svg = null;
     if ($svg === null) {
         $f = APP_ROOT . '/assets/img/logo-mark.svg';
         $svg = is_file($f) ? file_get_contents($f) : '';
+        // Drop the intrinsic px size so the mark always scales to its container.
+        $svg = preg_replace('/\s(?:width|height)="\d+"/', '', $svg, 2);
     }
-    // Drop the intrinsic px size so the mark always scales to its container.
-    $out = preg_replace('/\s(?:width|height)="\d+"/', '', $svg, 2);
-    $cls = trim('shra-logo ' . $class);
-    return str_replace('<svg ', '<svg class="' . e($cls) . '" ', $out);
+    return str_replace('<svg ', '<svg class="' . e($cls) . '" ', $svg);
+}
+
+/** Browser-tab icon: the uploaded logo when there is one, else the bundled mark. */
+function favicon_url(string $base = ''): string
+{
+    $c = custom_logo();
+    if ($c) return $base . $c['rel'] . '?v=' . filemtime($c['file']);
+    return $base . 'assets/img/favicon.svg';
 }
 
 function current_page(): string { return basename($_SERVER['SCRIPT_NAME'] ?? ''); }
@@ -64,7 +103,7 @@ function layout_header(string $title, array $opts = []): void
 <meta name="theme-color" content="#3b2417">
 <meta name="robots" content="noindex, nofollow">
 <title><?= e($title) ?> &middot; <?= e(setting('academy_short', APP_SHORT)) ?></title>
-<link rel="icon" href="<?= $base ?>assets/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="<?= e(favicon_url($base)) ?>">
 <link rel="stylesheet" href="<?= $base ?>assets/css/shra.css?v=<?= APP_VERSION ?>">
 </head>
 <body>
@@ -134,7 +173,7 @@ function plain_header(string $title, string $base = ''): void
 <meta name="theme-color" content="#3b2417">
 <meta name="robots" content="noindex, nofollow">
 <title><?= e($title) ?> &middot; <?= e(setting('academy_short', APP_SHORT)) ?></title>
-<link rel="icon" href="<?= $base ?>assets/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="<?= e(favicon_url($base)) ?>">
 <link rel="stylesheet" href="<?= $base ?>assets/css/shra.css?v=<?= APP_VERSION ?>">
 </head>
 <body>
