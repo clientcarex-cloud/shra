@@ -109,7 +109,7 @@
       if (target) target.value = '';
       if (v.length < 2) { box.style.display = 'none'; return; }
       timer = setTimeout(function () {
-        fetch('api_search.php?q=' + encodeURIComponent(v))
+        fetch(((window.SHRA && window.SHRA.search) || 'api_search.php') + '?q=' + encodeURIComponent(v))
           .then(function (r) { return r.json(); })
           .then(function (rows) {
             if (!rows.length) { box.innerHTML = '<div class="list-item muted">No match</div>'; }

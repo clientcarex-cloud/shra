@@ -123,16 +123,48 @@ and links the two records.
 **Riders** get their own portal (mobile number + 4-digit PIN from the desk):
 sessions remaining, ride history with trainer notes, and their bills.
 
-## 6. Nginx instead of Apache
+## 6. Tidy web addresses
 
-`.htaccess` is ignored by Nginx, so add this to the server block:
+Out of the box the app serves `/customers` rather than `/customers.php`, using
+the rewrite rules in `.htaccess`. Old links keep working: a GET to
+`/customers.php` is 301-redirected to the clean form, and form submissions are
+never redirected, so no POST can lose its data.
+
+Turn it off under **Settings → Public site URL → Tidy web addresses** if your
+host lacks `mod_rewrite` or runs with `AllowOverride None`. That page runs a
+live self-test and tells you whether clean URLs actually resolve on this
+server. Should links ever 404, `settings.php` (with the extension) still works,
+so you can always switch it back.
+
+## 7. Nginx instead of Apache
+
+`.htaccess` is ignored by Nginx, so put this in the server block:
 
 ```nginx
+root /var/www/shra;
+index index.php;
+
 location ^~ /inc/ { deny all; return 404; }
 location = /install.php { allow 203.0.113.4; deny all; }  # your IP, then delete the file
+
+# Tidy addresses: serve /customers from customers.php
+location / {
+    try_files $uri $uri/ $uri.php?$query_string;
+}
+
+# Canonical: /customers.php -> /customers, GET only so POSTs keep their data
+if ($request_method = GET) {
+    rewrite ^/(.*)\.php$ /$1 permanent;
+}
+
+location ~ \.php$ {
+    include fastcgi_params;
+    fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+}
 ```
 
-## 7. Upgrading (replacing the files later)
+## 8. Upgrading (replacing the files later)
 
 When you upload a newer copy of the app:
 
@@ -145,7 +177,7 @@ When you upload a newer copy of the app:
 
 Your data lives in MySQL, so replacing the PHP files never touches it.
 
-## 8. Backups
+## 9. Backups
 
 Everything lives in the database. A nightly dump is enough:
 
@@ -153,7 +185,7 @@ Everything lives in the database. A nightly dump is enough:
 mysqldump -u USER -p DBNAME | gzip > shra-$(date +%F).sql.gz
 ```
 
-## 9. Security notes
+## 10. Security notes
 
 - Passwords are stored with `password_hash()` (bcrypt); sessions are HttpOnly
   and SameSite=Lax, and the session ID is regenerated on login.

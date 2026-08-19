@@ -24,6 +24,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/helpers.php';
+
+// Rewrites internal links to their extensionless form on the way out.
+if (!headers_sent()) ob_start('clean_url_filter');
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/image.php';
 require_once __DIR__ . '/icons.php';

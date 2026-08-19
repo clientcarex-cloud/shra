@@ -78,7 +78,7 @@ function flash_pull(): array
 }
 
 /** Redirect and stop. */
-function redirect(string $url): void { header('Location: ' . $url); exit; }
+function redirect(string $url): void { header('Location: ' . u($url)); exit; }
 function back(): void { redirect($_SERVER['HTTP_REFERER'] ?? 'index.php'); }
 
 /** ---- Settings (key/value store, cached per request) ---- */
@@ -97,18 +97,90 @@ function setting_set(string $key, $value): void
         [$key, (string)$value]);
 }
 
+/**
+ * Are extensionless URLs switched on? Falls back to "no" whenever we cannot
+ * be sure — a broken database must never take the recovery links with it.
+ */
+function clean_urls(): bool
+{
+    static $on = null;
+    if ($on !== null) return $on;
+    if (!APP_INSTALLED) return $on = false;
+    try {
+        $on = setting('clean_urls', '1') === '1';
+    } catch (Throwable $e) {
+        $on = false;
+    }
+    return $on;
+}
+
+/** Strip the .php extension from an internal link when clean URLs are on. */
+function u(string $path): string
+{
+    if ($path === '' || !clean_urls()) return $path;
+    return preg_replace('/\.php(?=$|[?#])/i', '', $path);
+}
+
+/**
+ * Output filter that turns href="x.php" into href="x" across a whole page,
+ * so every link — including ones built inside PHP expressions — stays correct.
+ * Only touches HTML responses.
+ */
+function clean_url_filter(string $html): string
+{
+    if (!clean_urls()) return $html;
+    foreach (headers_list() as $h) {
+        if (stripos($h, 'content-type:') === 0 && stripos($h, 'text/html') === false) return $html;
+    }
+    return preg_replace('/\b(href|action)="([^"]*?)\.php(?=$|[?#"])/i', '$1="$2', $html) ?? $html;
+}
+
+/**
+ * Ask this very server whether an extensionless URL actually resolves.
+ * Returns true/false, or null when the check cannot run.
+ */
+function probe_clean_urls(): ?bool
+{
+    $url = rtrim(base_url(), '/') . '/login';      // public page, cheap to fetch
+    $code = null;
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_NOBODY         => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_TIMEOUT        => 4,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+        ]);
+        curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+    } elseif (ini_get('allow_url_fopen')) {
+        $ctx = stream_context_create(['http' => ['method' => 'HEAD', 'timeout' => 4, 'ignore_errors' => true],
+                                      'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false]]);
+        @file_get_contents($url, false, $ctx);
+        foreach ($http_response_header ?? [] as $h) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) { $code = (int)$m[1]; break; }
+        }
+    }
+    if (!$code) return null;
+    return $code !== 404;
+}
+
 /** Absolute base URL of the app (e.g. https://host/shra). */
 function base_url(string $path = ''): string
 {
     $cfg = setting('site_url');
-    if ($cfg) return rtrim($cfg, '/') . '/' . ltrim($path, '/');
+    if ($cfg) return rtrim($cfg, '/') . '/' . ltrim(u($path), '/');
     $https  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $dir    = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
     // portal/ pages sit one level deeper
     if (str_ends_with($dir, '/portal')) $dir = substr($dir, 0, -7);
-    return ($https ? 'https://' : 'http://') . $host . $dir . '/' . ltrim($path, '/');
+    return ($https ? 'https://' : 'http://') . $host . $dir . '/' . ltrim(u($path), '/');
 }
 
 /** 24576 -> "24 KB" */

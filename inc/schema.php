@@ -240,6 +240,7 @@ function seed_data(PDO $pdo): void
         'self_billing'    => '1',
         'terms'           => "1. Fees once paid are non-refundable and non-transferable.\n2. Riders must wear a helmet and proper footwear at all times.\n3. Sessions missed without 24 hours notice are treated as used.\n4. The academy is not liable for injuries arising from failure to follow trainer instructions.",
         'site_url'        => '',
+        'clean_urls'      => '1',
     ];
     $st = $pdo->prepare('INSERT IGNORE INTO settings (skey, svalue) VALUES (?,?)');
     foreach ($defaults as $k => $v) $st->execute([$k, $v]);

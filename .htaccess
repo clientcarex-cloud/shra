@@ -8,8 +8,30 @@ RedirectMatch 404 (?i)/\.(git|env|htaccess|htpasswd)
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  # Block direct requests to the includes folder
-  RewriteRule ^inc/ - [F,L]
+
+  # 1. The includes folder is off limits, with or without an extension,
+  #    so /inc/config cannot sneak past rule 4 below.
+  RewriteRule ^inc(/|$) - [F,L]
+
+  # 2. Drop a trailing slash on non-directories: /customers/ -> /customers
+  #    The target is built from REQUEST_URI so it stays a URL path — a relative
+  #    substitution here can expand to the filesystem path instead.
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} ^(.*[^/])/+$
+  RewriteRule ^ %1 [R=301,L,NE]
+
+  # 3. Canonical form: /customers.php -> /customers
+  #    GET only. Redirecting a POST would turn it into a GET and throw away
+  #    the form data, which would break every form in the app.
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{THE_REQUEST} \s([^?\s]*)\.php([?\s]) [NC]
+  RewriteRule ^ %1 [R=301,L,NE]
+
+  # 4. Serve /customers from customers.php (works in a subfolder too).
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^(.+)$ $1.php [L]
 </IfModule>
 
 # Sensible defaults
@@ -20,8 +42,9 @@ RedirectMatch 404 (?i)/\.(git|env|htaccess|htpasswd)
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
 </IfModule>
 
-# Do not list directories
-Options -Indexes
+# No directory listings, and no content negotiation guessing at
+# extensions — that conflicts with the rewrite rules above.
+Options -Indexes -MultiViews
 
 DirectoryIndex index.php
 

@@ -5,7 +5,7 @@ require_once __DIR__ . '/inc/qrcode.php';
 
 $keys = ['academy_name', 'academy_short', 'academy_address', 'academy_phone', 'academy_email',
          'academy_website', 'academy_instagram', 'invoice_prefix', 'tax_pct', 'tax_label',
-         'upi_id', 'upi_payee', 'self_billing', 'terms', 'site_url'];
+         'upi_id', 'upi_payee', 'self_billing', 'terms', 'site_url', 'clean_urls'];
 
 /** Save an uploaded academy logo to assets/img/logo-custom.<ext>. */
 function handle_logo_upload(): void
@@ -105,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     foreach ($keys as $k) {
         if ($k === 'self_billing') { setting_set($k, post('self_billing') ? '1' : '0'); continue; }
+        if ($k === 'clean_urls')   { setting_set($k, post('clean_urls')   ? '1' : '0'); continue; }
         if (array_key_exists($k, $_POST)) setting_set($k, trim((string)$_POST[$k]));
     }
     flash('Settings saved.');
@@ -174,6 +175,29 @@ layout_header('Settings');
             <div class="help">Needed for the scan-to-pay QR on invoices and the rider portal.</div></div>
           <div class="field"><label>UPI payee name</label>
             <input type="text" name="upi_payee" value="<?= e(setting('upi_payee')) ?>"></div>
+          <label class="check"><input type="checkbox" name="clean_urls" value="1"
+            <?= setting('clean_urls', '1') === '1' ? 'checked' : '' ?>>
+            <span>Tidy web addresses &mdash; show <code>/customers</code> instead of <code>/customers.php</code></span></label>
+          <div class="help" style="margin:-.3rem 0 .9rem">
+            Needs Apache <code>mod_rewrite</code> with <code>AllowOverride All</code> (or the Nginx rules
+            in the README). If links start 404-ing, switch this off &mdash; you can always reach this page
+            at <code>settings.php</code>.
+            <?php if (setting('clean_urls', '1') === '1'):
+                    $probe = probe_clean_urls(); ?>
+              <div style="margin-top:.4rem">
+                <?php if ($probe === true): ?>
+                  <span class="badge badge-ok">Working</span> this server resolves <code><?= e(rtrim(base_url(), '/')) ?>/login</code>.
+                <?php elseif ($probe === false): ?>
+                  <span class="badge badge-danger">Not working</span> this server returns 404 for
+                  <code><?= e(rtrim(base_url(), '/')) ?>/login</code> &mdash; turn this off, or enable
+                  <code>mod_rewrite</code>.
+                <?php else: ?>
+                  <span class="badge badge-muted">Not checked</span> the self-test could not run on this host.
+                <?php endif; ?>
+              </div>
+            <?php endif; ?>
+          </div>
+
           <div class="field"><label>Public site URL</label>
             <input type="text" name="site_url" placeholder="https://app.stallionhorseriding.com" value="<?= e(setting('site_url')) ?>">
             <div class="help">Used when building QR links. Leave blank to detect it automatically

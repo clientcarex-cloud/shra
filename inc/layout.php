@@ -169,6 +169,7 @@ function layout_footer(array $opts = []): void
       <span class="ic"><?= icon($t['ic'], 22) ?></span><?= e($t['label']) ?></a>
   <?php endforeach; ?>
 </nav>
+<script>window.SHRA={search:<?= json_encode(u($base . 'api_search.php')) ?>};</script>
 <script src="<?= e(asset('assets/js/app.js', $base)) ?>"></script>
 </body></html>
 <?php
@@ -194,6 +195,7 @@ function plain_header(string $title, string $base = ''): void
 function plain_footer(string $base = ''): void
 {
     ?>
+<script>window.SHRA={search:<?= json_encode(u($base . 'api_search.php')) ?>};</script>
 <script src="<?= e(asset('assets/js/app.js', $base)) ?>"></script>
 </body></html>
 <?php }
