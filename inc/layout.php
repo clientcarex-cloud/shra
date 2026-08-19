@@ -42,6 +42,10 @@ function custom_logo(): ?array
     static $found = false, $cache = null;
     if ($found) return $cache;
     $found = true;
+    // Sweep up any scratch file left by an interrupted upload.
+    foreach (glob(APP_ROOT . '/assets/img/.logo-*.png') ?: [] as $stale) {
+        if (filemtime($stale) < time() - 300) @unlink($stale);
+    }
     foreach (['svg', 'png', 'webp', 'jpg'] as $ext) {
         $f = APP_ROOT . '/assets/img/logo-custom.' . $ext;
         if (is_file($f)) { $cache = ['file' => $f, 'ext' => $ext, 'rel' => 'assets/img/logo-custom.' . $ext]; break; }
@@ -88,6 +92,14 @@ function favicon_url(string $base = ''): string
     return $base . 'assets/img/favicon.svg';
 }
 
+/** Cache-busting stamp for a bundled asset — changes whenever the file does. */
+function asset(string $rel, string $base = ''): string
+{
+    $f = APP_ROOT . '/' . ltrim($rel, '/');
+    $v = is_file($f) ? filemtime($f) : APP_VERSION;
+    return $base . $rel . '?v=' . $v;
+}
+
 function current_page(): string { return basename($_SERVER['SCRIPT_NAME'] ?? ''); }
 
 function layout_header(string $title, array $opts = []): void
@@ -104,7 +116,7 @@ function layout_header(string $title, array $opts = []): void
 <meta name="robots" content="noindex, nofollow">
 <title><?= e($title) ?> &middot; <?= e(setting('academy_short', APP_SHORT)) ?></title>
 <link rel="icon" href="<?= e(favicon_url($base)) ?>">
-<link rel="stylesheet" href="<?= $base ?>assets/css/shra.css?v=<?= APP_VERSION ?>">
+<link rel="stylesheet" href="<?= e(asset('assets/css/shra.css', $base)) ?>">
 </head>
 <body>
 <div class="scrim" id="scrim"></div>
@@ -157,7 +169,7 @@ function layout_footer(array $opts = []): void
       <span class="ic"><?= icon($t['ic'], 22) ?></span><?= e($t['label']) ?></a>
   <?php endforeach; ?>
 </nav>
-<script src="<?= $base ?>assets/js/app.js?v=<?= APP_VERSION ?>"></script>
+<script src="<?= e(asset('assets/js/app.js', $base)) ?>"></script>
 </body></html>
 <?php
 }
@@ -174,7 +186,7 @@ function plain_header(string $title, string $base = ''): void
 <meta name="robots" content="noindex, nofollow">
 <title><?= e($title) ?> &middot; <?= e(setting('academy_short', APP_SHORT)) ?></title>
 <link rel="icon" href="<?= e(favicon_url($base)) ?>">
-<link rel="stylesheet" href="<?= $base ?>assets/css/shra.css?v=<?= APP_VERSION ?>">
+<link rel="stylesheet" href="<?= e(asset('assets/css/shra.css', $base)) ?>">
 </head>
 <body>
 <?php }
@@ -182,6 +194,6 @@ function plain_header(string $title, string $base = ''): void
 function plain_footer(string $base = ''): void
 {
     ?>
-<script src="<?= $base ?>assets/js/app.js?v=<?= APP_VERSION ?>"></script>
+<script src="<?= e(asset('assets/js/app.js', $base)) ?>"></script>
 </body></html>
 <?php }

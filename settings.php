@@ -42,8 +42,37 @@ function handle_logo_upload(): void
             flash('That file is not a readable PNG, JPG or WEBP image.', 'error');
             return;
         }
-        $ext    = $allowed[$info[2]];          // trust the real type, not the file name
-        $target = $dir . '/logo-custom.' . $ext;
+        if (!is_writable($dir)) {
+            flash('Cannot write to assets/img — set that folder writable (chmod 755) and try again.', 'error');
+            return;
+        }
+
+        // Process into a scratch file first, so a failure leaves the old logo intact.
+        $res = normalize_logo($f['tmp_name'], $info[2], $dir);
+        if ($res['ok']) {
+            foreach (['svg', 'png', 'webp', 'jpg'] as $old) @unlink($dir . '/logo-custom.' . $old);
+            if (!@rename($res['tmp'], $dir . '/logo-custom.png')) {
+                @unlink($res['tmp']);
+                flash('Could not save the processed logo.', 'error');
+                return;
+            }
+            @chmod($dir . '/logo-custom.png', 0644);
+            flash(sprintf('Logo updated — resized from %s to %d×%d px (%s). It now appears on every screen, invoice and poster.',
+                  e($res['from']), $res['w'], $res['h'], size_label($res['bytes'])));
+            return;
+        }
+
+        // No GD on this host: keep the original file rather than refusing the upload.
+        $target = $dir . '/logo-custom.' . $allowed[$info[2]];
+        foreach (['svg', 'png', 'webp', 'jpg'] as $old) @unlink($dir . '/logo-custom.' . $old);
+        if (!move_uploaded_file($tmp, $target)) {
+            flash('Could not save the uploaded file.', 'error');
+            return;
+        }
+        @chmod($target, 0644);
+        flash('Logo updated. (This server has no GD image support, so the file was stored at its '
+            . 'original ' . $info[0] . '×' . $info[1] . ' px — it will still display correctly.)', 'warn');
+        return;
     } else {
         flash('Use a PNG, JPG, WEBP or SVG file.', 'error');
         return;

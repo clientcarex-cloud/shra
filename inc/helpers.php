@@ -111,6 +111,14 @@ function base_url(string $path = ''): string
     return ($https ? 'https://' : 'http://') . $host . $dir . '/' . ltrim($path, '/');
 }
 
+/** 24576 -> "24 KB" */
+function size_label(int $bytes): string
+{
+    if ($bytes >= 1048576) return round($bytes / 1048576, 1) . ' MB';
+    if ($bytes >= 1024)    return round($bytes / 1024) . ' KB';
+    return $bytes . ' B';
+}
+
 function rand_token(int $len = 16): string
 {
     return substr(bin2hex(random_bytes($len)), 0, $len);

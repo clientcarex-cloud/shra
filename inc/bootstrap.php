@@ -25,6 +25,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/image.php';
 require_once __DIR__ . '/icons.php';
 require_once __DIR__ . '/layout.php';
 require_once __DIR__ . '/model.php';

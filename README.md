@@ -61,10 +61,24 @@ Then add your **Trainers**, and print the counter QR from
 invoices, receipts, the QR posters, the rider portal and the browser tab icon.
 A square image with a transparent background looks best in the dark sidebar.
 
-The file is stored as `assets/img/logo-custom.<ext>`, so `assets/img/` must be
+**Size does not matter — upload whatever you have.** The app processes the
+image for you:
+
+- corrects sideways phone photos (EXIF rotation)
+- trims the uniform white or transparent margin so the mark fills its space
+- scales the longest edge down to 512 px, never stretching or enlarging
+- saves a compressed PNG with transparency intact
+
+A 2400×2400 export becomes a 512×512, ~19 KB PNG. The confirmation message
+tells you exactly what it did. Aspect ratio is always preserved, so wide
+wordmark logos stay wide.
+
+The file is stored as `assets/img/logo-custom.png`, so `assets/img/` must be
 writable (`chmod 755 assets/img`). Uploads are validated by their real image
-type, not the file name; SVGs containing scripts or event handlers are refused.
-"Remove uploaded logo" restores the built-in mark.
+type, not the file name; SVGs are kept as vectors and are refused if they
+contain scripts or event handlers. "Remove uploaded logo" restores the built-in
+mark. If the server has no GD extension, the original file is stored unchanged
+and the app says so.
 
 You can also place the file there over FTP instead of uploading — any of
 `logo-custom.svg`, `.png`, `.webp` or `.jpg` is picked up automatically.
