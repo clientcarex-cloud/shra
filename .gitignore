@@ -1,0 +1,5 @@
+# Never travels between machines — each server writes its own via install.php
+inc/config.local.php
+
+# Uploaded branding
+assets/img/logo-custom.*

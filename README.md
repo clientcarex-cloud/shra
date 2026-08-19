@@ -16,6 +16,12 @@ the folder to any PHP VPS or cPanel host and run the installer.
 | Database | MySQL 5.7+ / MariaDB 10.3+ |
 | Web server | Apache (an `.htaccess` is included) or Nginx (see §6) |
 
+> **Never copy `inc/config.local.php` from one server to another.** It holds the
+> database credentials of the machine it was created on, and carrying it across
+> causes `SQLSTATE[HY000] [2002] Connection refused`. Each server writes its own
+> when you run `install.php`. If you ever hit that error, delete the file and
+> re-run the installer — the app now says so on screen.
+
 ## 2. Install
 
 1. Upload the contents of `shra/` to your web root, e.g. `/var/www/html/`
@@ -112,7 +118,20 @@ location ^~ /inc/ { deny all; return 404; }
 location = /install.php { allow 203.0.113.4; deny all; }  # your IP, then delete the file
 ```
 
-## 7. Backups
+## 7. Upgrading (replacing the files later)
+
+When you upload a newer copy of the app:
+
+1. Keep the server's own `inc/config.local.php` — do **not** overwrite it with
+   one from another machine, and do not delete it unless you intend to re-run
+   the installer.
+2. Keep `assets/img/logo-custom.*` if you uploaded a logo.
+3. Re-uploading `install.php` is safe: it refuses to run again while
+   `config.local.php` exists, unless you pass `?force=1`.
+
+Your data lives in MySQL, so replacing the PHP files never touches it.
+
+## 8. Backups
 
 Everything lives in the database. A nightly dump is enough:
 
@@ -120,7 +139,7 @@ Everything lives in the database. A nightly dump is enough:
 mysqldump -u USER -p DBNAME | gzip > shra-$(date +%F).sql.gz
 ```
 
-## 8. Security notes
+## 9. Security notes
 
 - Passwords are stored with `password_hash()` (bcrypt); sessions are HttpOnly
   and SameSite=Lax, and the session ID is regenerated on login.
