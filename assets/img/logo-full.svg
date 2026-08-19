@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 260" width="260" height="260" role="img" aria-label="Stallion Horse Riding Academy">
+  <defs>
+    <path id="arcTop" d="M24 132 A106 106 0 0 1 236 132"/>
+    <path id="arcBot" d="M30 132 A100 100 0 0 0 230 132"/>
+  </defs>
+  <g fill="currentColor" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="700" font-size="20" letter-spacing="2.2">
+    <text><textPath href="#arcTop" startOffset="50%" text-anchor="middle">STALLION HORSE</textPath></text>
+    <text><textPath href="#arcBot" startOffset="50%" text-anchor="middle">RIDING ACADEMY</textPath></text>
+  </g>
+  <g transform="translate(47,44) scale(0.83)">
+  <!-- horseshoe -->
+  <path fill="currentColor" d="M32.5 61 A78 78 0 1 0 167.5 61 L145 74 A52 52 0 1 1 55 74 Z"/>
+  <!-- nail holes -->
+  <g fill="#fff">
+    <circle cx="38.5" cy="92" r="3.6"/><circle cx="45" cy="72" r="3.6"/>
+    <circle cx="52" cy="132" r="3.6"/><circle cx="70" cy="150" r="3.6"/>
+    <circle cx="161.5" cy="92" r="3.6"/><circle cx="155" cy="72" r="3.6"/>
+    <circle cx="148" cy="132" r="3.6"/><circle cx="130" cy="150" r="3.6"/>
+  </g>
+  <!-- horse head -->
+  <g transform="translate(100,101) scale(0.86) translate(-104,-96)">
+    <path fill="currentColor" d="M62 112 C66 102 74 92 84 82 L98 64 C100 60 101 56 102 52 L100 42 L110 54
+      L116 40 L122 56 C132 66 142 84 146 104 C150 124 148 140 144 152 L108 152
+      C104 142 98 134 90 128 C80 124 72 124 66 122 C61 120 59 116 62 112 Z"/>
+    <g fill="#fff">
+      <ellipse cx="96" cy="74" rx="4" ry="5.5" transform="rotate(-35 96 74)"/>
+      <circle cx="70" cy="110" r="2.3"/>
+      <path d="M124 66 C134 80 139 98 138 116 C136 100 131 82 121 70 Z"/>
+      <path d="M114 60 C126 76 132 96 131 116 C129 98 123 78 111 64 Z"/>
+    </g>
+  </g>
+</g>
+</svg>

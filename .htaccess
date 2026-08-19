@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# Stallion Horse Riding Academy — Apache configuration
+# ---------------------------------------------------------------------------
+
+# Never serve the config or include folder directly
+RedirectMatch 404 (?i)/inc/.*\.php$
+RedirectMatch 404 (?i)/\.(git|env|htaccess|htpasswd)
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Block direct requests to the includes folder
+  RewriteRule ^inc/ - [F,L]
+</IfModule>
+
+# Sensible defaults
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# Do not list directories
+Options -Indexes
+
+DirectoryIndex index.php
+
+# Cache static assets, never cache PHP output
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css            "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/svg+xml       "access plus 30 days"
+  ExpiresByType image/png           "access plus 30 days"
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript image/svg+xml application/json
+</IfModule>
+
+# Larger POSTs are never needed here
+php_value post_max_size 8M
+php_value upload_max_filesize 8M
